@@ -4,7 +4,7 @@
 #include "Fourier.h"
 #include "Assert.h"
 
-#include "kissfft/kiss_fftr.h"
+#include "kiss_fftr.h"
 
 namespace Bungee::Fourier {
 
