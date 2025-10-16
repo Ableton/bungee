@@ -20,6 +20,7 @@
 #include <complex>
 #include <memory>
 #include <numbers>
+#include <optional>
 
 namespace Bungee {
 
@@ -54,9 +55,10 @@ struct Grain
 	Eigen::ArrayXf energy;
 	Eigen::ArrayX<Phase::Type> rotation;
 	std::vector<Partials::Partial> partials;
-	Eigen::ArrayXXf inputCopy;
+	Eigen::ArrayXXf inputCopyStorage;
+	std::optional<Eigen::Block<Eigen::ArrayXXf>> inputCopy;
 
-	Grain(int log2SynthesisHop, int channelCount);
+	Grain(int log2SynthesisHop, int channelCount, int maxInputFrameCount);
 
 	InputChunk specify(const Request &request, Grain &previous, SampleRates sampleRates, int log2SynthesisHop, double bufferStartPosition, Internal::Instrumentation &instrumentation);
 
