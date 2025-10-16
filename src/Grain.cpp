@@ -115,7 +115,9 @@ void Grain::overlapCheck(Eigen::Ref<Eigen::ArrayXXf> input, int muteFrameCountHe
 		const auto overlapCurrent = inputCopy->middleRows(overlapStart - inputChunk.begin, overlapFrames);
 		const auto overlapPrevious = previous.inputCopy->middleRows(overlapStart - previous.inputChunk.begin, overlapFrames);
 
-		if (!(overlapCurrent == overlapPrevious).all())
+		const auto isOverlapEqual = (overlapCurrent == overlapPrevious).all();
+		BUNGEE_ASSERT1(isOverlapEqual);
+		if (!isOverlapEqual)
 		{
 			Instrumentation::log("UNEXPECTED INPUT: the %s %d frames of this grain's input audio chunk are different to the %s %d frames of the previous grain's audio audio input chunk",
 				overlapStart == inputChunk.begin ? "first" : "last",
