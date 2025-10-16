@@ -20,6 +20,7 @@
 #include <complex>
 #include <memory>
 #include <numbers>
+#include <optional>
 
 namespace Bungee {
 
@@ -55,11 +56,12 @@ struct Grain
 	Eigen::ArrayX<Phase::Type> delta;
 	std::vector<Partials::Partial> partials;
 	Resample::Padded inputResampled;
-	Eigen::ArrayXXf inputCopy;
+	Eigen::ArrayXXf inputCopyStorage;
+	std::optional<Eigen::Block<Eigen::ArrayXXf>> inputCopy;
 
 	Output::Segment segment;
 
-	Grain(int log2SynthesisHop, int channelCount);
+	Grain(int log2SynthesisHop, int channelCount, int maxInputFrameCount);
 
 	InputChunk specify(const Request &request, Grain &previous, SampleRates sampleRates, int log2SynthesisHop, double bufferStartPosition);
 

@@ -19,7 +19,7 @@ Internal::Stretcher::Stretcher(SampleRates sampleRates, int channelCount, int lo
 	output(transforms, log2SynthesisHop, channelCount, maxOutputFrameCount(true), 0.25f, {1.f, 0.5f})
 {
 	for (auto &grain : grains.vector)
-		grain = std::make_unique<Grain>(log2SynthesisHop, channelCount);
+		grain = std::make_unique<Grain>(log2SynthesisHop, channelCount, maxInputFrameCount(true));
 
 	Fourier::resize<true>(grains[0].log2TransformLength, 1, temporary);
 }
