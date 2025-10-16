@@ -13,9 +13,10 @@ namespace Bungee {
 
 using namespace Internal;
 
-Grain::Grain(int log2SynthesisHop, int channelCount) :
+Grain::Grain(int log2SynthesisHop, int channelCount, int maxInputFrameCount) :
 	channelCount(channelCount),
-	log2TransformLength(log2SynthesisHop + 3)
+	log2TransformLength(log2SynthesisHop + 3),
+	inputCopyStorage(maxInputFrameCount, channelCount)
 {
 	request.position = request.speed = std::numeric_limits<float>::quiet_NaN();
 	request.pitch = 1.;
@@ -35,7 +36,7 @@ InputChunk Grain::specify(const Request &r, Grain &previous, SampleRates sampleR
 	requestHop = request.position - previous.request.position;
 
 	if (instrumentation.firstGrain)
-		instrumentation.log("Stretcher: sampleRates=[%d, %d] channelCount=%d  synthesisHop=%d", sampleRates.input, sampleRates.output, inputCopy.cols(), 1 << log2TransformLength >> 3);
+		instrumentation.log("Stretcher: sampleRates=[%d, %d] channelCount=%d  synthesisHop=%d", sampleRates.input, sampleRates.output, channelCount, 1 << log2TransformLength >> 3);
 	instrumentation.firstGrain = false;
 
 	if (!request.reset && !std::isnan(request.speed) && !std::isnan(requestHop) && std::abs(request.speed * unitHop - requestHop) > 1.)
@@ -93,29 +94,22 @@ void Grain::overlapCheck(Eigen::Ref<Eigen::ArrayXXf> input, int muteFrameCountHe
 	const auto frameCount = inputChunk.end - inputChunk.begin;
 	const auto activeRows = frameCount - muteFrameCountHead - muteFrameCountTail;
 
-#ifdef EIGEN_RUNTIME_NO_MALLOC
-	Eigen::internal::set_is_malloc_allowed(true);
-#endif
-	inputCopy.resize(frameCount, input.cols());
-#ifdef EIGEN_RUNTIME_NO_MALLOC
-	Eigen::internal::set_is_malloc_allowed(false);
-#endif
+	inputCopy.emplace(inputCopyStorage.topLeftCorner(frameCount, input.cols()));
+	inputCopy->topRows(muteFrameCountHead).setZero();
+	inputCopy->middleRows(muteFrameCountHead, activeRows) = input.middleRows(muteFrameCountHead, activeRows);
+	inputCopy->bottomRows(muteFrameCountTail).setZero();
 
-	inputCopy.topRows(muteFrameCountHead).setZero();
-	inputCopy.middleRows(muteFrameCountHead, activeRows) = input.middleRows(muteFrameCountHead, activeRows);
-	inputCopy.bottomRows(muteFrameCountTail).setZero();
-
-	if (!inputCopy.isFinite().all())
+	if (!inputCopy->isFinite().all())
 		instrumentation.log("BAD INPUT: input audio is not all finite samples");
 
 	const auto overlapStart = std::max(inputChunk.begin, previous.inputChunk.begin);
 	const auto overlapEnd = std::min(inputChunk.end, previous.inputChunk.end);
 	const auto overlapFrames = overlapEnd - overlapStart;
 
-	if (overlapFrames > 0 && previous.inputCopy.rows() > 0)
+	if (overlapFrames > 0 && previous.inputCopy.has_value())
 	{
-		const auto overlapCurrent = inputCopy.middleRows(overlapStart - inputChunk.begin, overlapFrames);
-		const auto overlapPrevious = previous.inputCopy.middleRows(overlapStart - previous.inputChunk.begin, overlapFrames);
+		const auto overlapCurrent = inputCopy->middleRows(overlapStart - inputChunk.begin, overlapFrames);
+		const auto overlapPrevious = previous.inputCopy->middleRows(overlapStart - previous.inputChunk.begin, overlapFrames);
 
 		if (!(overlapCurrent == overlapPrevious).all())
 		{

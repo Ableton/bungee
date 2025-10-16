@@ -20,7 +20,7 @@ Internal::Stretcher::Stretcher(SampleRates sampleRates, int channelCount, int lo
 	synthesis(log2SynthesisHop + 3)
 {
 	for (auto &grain : grains.vector)
-		grain = std::make_unique<Grain>(log2SynthesisHop, channelCount);
+		grain = std::make_unique<Grain>(log2SynthesisHop, channelCount, maxInputFrameCount(true));
 
 	grains.prepare();
 
