@@ -42,7 +42,7 @@ double Timing::calculateInputHop(const Request &request) const
 
 void Timing::preroll(Request &request) const
 {
-	request.position -= calculateInputHop(request);
+	request.position -= 4. * calculateInputHop(request);
 	request.reset = true;
 }
 
