@@ -110,7 +110,7 @@ void Grain::overlapCheck(Eigen::Ref<Eigen::ArrayXXf> input, int muteFrameCountHe
 	const auto overlapEnd = std::min(inputChunk.end, previous.inputChunk.end);
 	const auto overlapFrames = overlapEnd - overlapStart;
 
-	if (overlapFrames > 0 && previous.inputCopy.has_value())
+	if (continuous && overlapFrames > 0 && previous.inputCopy.has_value())
 	{
 		const auto overlapCurrent = inputCopy->middleRows(overlapStart - inputChunk.begin, overlapFrames);
 		const auto overlapPrevious = previous.inputCopy->middleRows(overlapStart - previous.inputChunk.begin, overlapFrames);
