@@ -53,7 +53,7 @@ struct FloatingPointExceptions
 	int allowed;
 	std::fenv_t original;
 
-	FloatingPointExceptions(int allowed);
+	FloatingPointExceptions(int userAllowed);
 	~FloatingPointExceptions();
 
 	void check() const;

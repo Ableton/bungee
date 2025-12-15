@@ -3,6 +3,10 @@
 
 #include "Assert.h"
 
+#if defined(__SSE2__) || defined(_M_X64)
+#	include <immintrin.h>
+#endif
+
 #include <csignal>
 #include <cstdio>
 #include <cstdlib>
@@ -10,6 +14,29 @@
 namespace Bungee::Assert {
 
 #if BUNGEE_SELF_TEST
+
+namespace {
+
+int allowedFloatingPointExceptions(int userAllowed)
+{
+	int allowed = userAllowed;
+
+#	if defined(__SSE2__) || defined(_M_X64)
+	if (_MM_GET_DENORMALS_ZERO_MODE() == _MM_DENORMALS_ZERO_ON)
+	{
+		allowed |= FE_DENORMALOPERAND;
+	}
+	if (_MM_GET_FLUSH_ZERO_MODE() == _MM_FLUSH_ZERO_ON)
+	{
+		allowed |= FE_UNDERFLOW;
+	}
+#	endif
+
+	return allowed;
+}
+
+} // namespace
+
 #	ifndef BUNGEE_ASSERT_FAIL_EXTERNAL
 void fail(int level, const char *message, const char *file, int line)
 {
@@ -18,8 +45,8 @@ void fail(int level, const char *message, const char *file, int line)
 }
 #	endif
 
-FloatingPointExceptions::FloatingPointExceptions(int allowed) :
-	allowed(allowed)
+FloatingPointExceptions::FloatingPointExceptions(int userAllowed) :
+	allowed(allowedFloatingPointExceptions(userAllowed))
 {
 	auto success = !std::fegetenv(&original);
 	BUNGEE_ASSERT1(success);
