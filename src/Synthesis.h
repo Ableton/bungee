@@ -7,6 +7,9 @@
 
 namespace Bungee::Synthesis {
 
-void synthesise(int log2SynthesisHop, Grain &grain, Grain &previous);
+template <class FourierKernel>
+void synthesise(int log2SynthesisHop, Grain<FourierKernel> &grain, Grain<FourierKernel> &previous);
 
 } // namespace Bungee::Synthesis
+
+#include "Synthesis.ipp"

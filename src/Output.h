@@ -7,7 +7,7 @@
 #include "Resample.h"
 #include "Window.h"
 
-#include "bungee/Bungee.h"
+#include "bungee/BungeeTypes.h"
 
 #include <Eigen/Core>
 
@@ -15,8 +15,10 @@
 
 namespace Bungee {
 
+template <class FourierKernel>
 struct Grains;
 
+template <class FourierKernel>
 struct Output
 {
 	Eigen::ArrayXf synthesisWindow;
@@ -25,9 +27,9 @@ struct Output
 	float resampleOffset = 0.f;
 	Window::DispatchApply dispatchApply;
 
-	Output(Fourier::Transforms &transforms, int log2SynthesisHop, int channelCount, int maxOutputChunkSize, float windowGain, std::initializer_list<float> windowCoefficients);
+	Output(Fourier::Transforms<FourierKernel> &transforms, int log2SynthesisHop, int channelCount, int maxOutputChunkSize, float windowGain, std::initializer_list<float> windowCoefficients);
 
-	void applySynthesisWindow(int log2SynthesisHop, Grains &grains, const Eigen::Ref<const Eigen::ArrayXf> &window);
+	void applySynthesisWindow(int log2SynthesisHop, Grains<FourierKernel> &grains, const Eigen::Ref<const Eigen::ArrayXf> &window);
 
 	struct Segment
 	{
@@ -42,3 +44,5 @@ struct Output
 };
 
 } // namespace Bungee
+
+#include "Output.ipp"

@@ -10,12 +10,9 @@
 #include <algorithm>
 #include <complex>
 #include <limits>
+#include <memory>
 #include <utility>
 #include <vector>
-
-namespace Bungee {
-extern const char *versionDescription;
-}
 
 namespace Bungee::Fourier {
 
@@ -67,17 +64,6 @@ inline void resize(int log2TransformLength, int channelCount, T &array, int extr
 	if constexpr (Assert::level)
 		array.setConstant(uninitialisedValue<Scalar>());
 }
-
-struct Transforms
-{
-	void *p;
-	Transforms();
-	~Transforms();
-	void prepareForward(int log2TransformLength);
-	void prepareInverse(int log2TransformLength);
-	void forward(int log2TransformLength, const Eigen::Ref<const Eigen::ArrayXXf> &t, Eigen::Ref<Eigen::ArrayXXcf> f);
-	void inverse(int log2TransformLength, Eigen::Ref<Eigen::ArrayXXf> t, const Eigen::Ref<const Eigen::ArrayXXcf> &f);
-};
 
 // General case when an FFT implementation has different states for forward and reverse transforms of same size.
 template <class F, class I>
@@ -161,25 +147,34 @@ public:
 	}
 };
 
+struct CacheBase
+{
+	virtual ~CacheBase() = default;
+	virtual void prepareForward(int log2TransformLength) = 0;
+	virtual void prepareInverse(int log2TransformLength) = 0;
+	virtual void forward(int log2TransformLength, const Eigen::Ref<const Eigen::ArrayXXf> &t, Eigen::Ref<Eigen::ArrayXXcf> f) const = 0;
+	virtual void inverse(int log2TransformLength, Eigen::Ref<Eigen::ArrayXXf> t, const Eigen::Ref<const Eigen::ArrayXXcf> &f) const = 0;
+};
+
 template <class K, int log2MaxSize>
-struct Cache
+struct Cache : public CacheBase
 {
 	typedef KernelPair<typename K::Forward, typename K::Inverse> Entry;
 	typedef std::array<Entry, log2MaxSize + 1> Table;
 
 	Table table;
 
-	inline void prepareForward(int log2TransformLength)
+	void prepareForward(int log2TransformLength) override
 	{
 		table[log2TransformLength].make_forward(log2TransformLength);
 	}
 
-	inline void prepareInverse(int log2TransformLength)
+	void prepareInverse(int log2TransformLength) override
 	{
 		table[log2TransformLength].make_inverse(log2TransformLength);
 	}
 
-	inline void forward(int log2TransformLength, const Eigen::Ref<const Eigen::ArrayXXf> &t, Eigen::Ref<Eigen::ArrayXXcf> f) const
+	void forward(int log2TransformLength, const Eigen::Ref<const Eigen::ArrayXXf> &t, Eigen::Ref<Eigen::ArrayXXcf> f) const override
 	{
 		BUNGEE_ASSERT1(t.cols() == t.cols());
 		BUNGEE_ASSERT1(t.cols() == 1 || !t.IsRowMajor);
@@ -191,7 +186,7 @@ struct Cache
 			kernel.forward(log2TransformLength, (float *)t.col(c).topRows(transformLength).data(), f.col(c).topRows(transformLength / 2 + 1).data());
 	}
 
-	inline void inverse(int log2TransformLength, Eigen::Ref<Eigen::ArrayXXf> t, const Eigen::Ref<const Eigen::ArrayXXcf> &f) const
+	void inverse(int log2TransformLength, Eigen::Ref<Eigen::ArrayXXf> t, const Eigen::Ref<const Eigen::ArrayXXcf> &f) const override
 	{
 		BUNGEE_ASSERT1(t.cols() == t.cols());
 		BUNGEE_ASSERT1(t.cols() == 1 || !t.IsRowMajor);
@@ -201,6 +196,37 @@ struct Cache
 		const auto &kernel = *table[log2TransformLength].inverse();
 		for (int c = 0; c < f.cols(); ++c)
 			kernel.inverse(log2TransformLength, t.col(c).topRows(transformLength).data(), (std::complex<float> *)f.col(c).topRows(transformLength / 2 + 1).data());
+	}
+};
+
+template <class FourierKernel>
+struct Transforms
+{
+	std::unique_ptr<CacheBase> p;
+
+	Transforms() :
+		p{std::make_unique<Cache<FourierKernel, 16>>()}
+	{
+	}
+
+	void prepareForward(int log2TransformLength)
+	{
+		p->prepareForward(log2TransformLength);
+	}
+
+	void prepareInverse(int log2TransformLength)
+	{
+		p->prepareInverse(log2TransformLength);
+	}
+
+	void forward(int log2TransformLength, const Eigen::Ref<const Eigen::ArrayXXf> &t, Eigen::Ref<Eigen::ArrayXXcf> f)
+	{
+		p->forward(log2TransformLength, t, f);
+	}
+
+	void inverse(int log2TransformLength, Eigen::Ref<Eigen::ArrayXXf> t, const Eigen::Ref<const Eigen::ArrayXXcf> &f)
+	{
+		p->inverse(log2TransformLength, t, f);
 	}
 };
 

@@ -1,8 +1,6 @@
 // Copyright (C) 2020-2025 Parabola Research Limited
 // SPDX-License-Identifier: MPL-2.0
 
-#include "Synthesis.h"
-
 #include "Dispatch.h"
 #include "Grains.h"
 #include "Stretch.h"
@@ -10,13 +8,14 @@
 
 namespace Bungee::Synthesis {
 
-static constexpr int flagReverse0 = 1 << 0;
-static constexpr int flagReverse1 = 1 << 1;
+inline constexpr int flagReverse0 = 1 << 0;
+inline constexpr int flagReverse1 = 1 << 1;
 
+template <class FourierKernel>
 struct Temporal
 {
 	template <int index>
-	static void special(int log2SynthesisHop, Grain &grain, Grain &previous)
+	static void special(int log2SynthesisHop, Grain<FourierKernel> &grain, Grain<FourierKernel> &previous)
 	{
 		typedef Stretch::Time<!!(index & flagReverse0), !!(index & flagReverse1)> StretchTime;
 
@@ -38,7 +37,8 @@ struct Temporal
 	}
 };
 
-void synthesise(int log2SynthesisHop, Grain &grain, Grain &previous)
+template <class FourierKernel>
+void synthesise(int log2SynthesisHop, Grain<FourierKernel> &grain, Grain<FourierKernel> &previous)
 {
 	Stretch::Frequency(grain.analysis.speed)(grain.validBinCount, grain.rotation, grain.phase);
 	BUNGEE_ASSERT2(!grain.passthrough || grain.rotation.topRows(grain.validBinCount).isZero());
@@ -51,7 +51,7 @@ void synthesise(int log2SynthesisHop, Grain &grain, Grain &previous)
 		if (previous.reverse())
 			index |= flagReverse1;
 
-		static constexpr Dispatch<Temporal, 4> dispatch;
+		static constexpr Dispatch<Temporal<FourierKernel>, 4> dispatch;
 		dispatch[index](log2SynthesisHop, grain, previous);
 	}
 	else

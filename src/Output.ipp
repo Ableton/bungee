@@ -1,13 +1,16 @@
 // Copyright (C) 2020-2025 Parabola Research Limited
 // SPDX-License-Identifier: MPL-2.0
 
-#include "Output.h"
+#pragma once
+
 #include "Grains.h"
+#include "Output.h"
 #include "Window.h"
 
 namespace Bungee {
 
-Output::Output(Fourier::Transforms &transforms, int log2SynthesisHop, int channelCount, int maxOutputChunkSize, float windowGain, std::initializer_list<float> windowCoefficients) :
+template <class FourierKernel>
+Output<FourierKernel>::Output(Fourier::Transforms<FourierKernel> &transforms, int log2SynthesisHop, int channelCount, int maxOutputChunkSize, float windowGain, std::initializer_list<float> windowCoefficients) :
 	synthesisWindow{Window::fromFrequencyDomainCoefficients(transforms, log2SynthesisHop + 2, windowGain, windowCoefficients)},
 	inverseTransformed(8 << log2SynthesisHop, channelCount),
 	bufferResampled(maxOutputChunkSize, channelCount)
@@ -15,7 +18,8 @@ Output::Output(Fourier::Transforms &transforms, int log2SynthesisHop, int channe
 	transforms.prepareInverse(log2SynthesisHop + 3);
 }
 
-void Output::applySynthesisWindow(int log2SynthesisHop, Grains &grains, const Eigen::Ref<const Eigen::ArrayXf> &window)
+template <class FourierKernel>
+void Output<FourierKernel>::applySynthesisWindow(int log2SynthesisHop, Grains<FourierKernel> &grains, const Eigen::Ref<const Eigen::ArrayXf> &window)
 {
 	const auto quadrantSize = (int)window.rows() / 4;
 	const auto hopsPerTransform = 1 << (grains[0].log2TransformLength - log2SynthesisHop);
@@ -52,12 +56,14 @@ void Output::applySynthesisWindow(int log2SynthesisHop, Grains &grains, const Ei
 		grains[0].resampleOperations.output.function;
 }
 
-Output::Segment::Segment(int log2FrameCount, int channelCount) :
+template <class FourierKernel>
+Output<FourierKernel>::Segment::Segment(int log2FrameCount, int channelCount) :
 	bufferLapped(1 << log2FrameCount, channelCount)
 {
 }
 
-void Output::Segment::lapPadding(Segment &current, Segment &next)
+template <class FourierKernel>
+void Output<FourierKernel>::Segment::lapPadding(Segment &current, Segment &next)
 {
 	constexpr auto n = Resample::Padded::padding;
 
@@ -78,7 +84,8 @@ void Output::Segment::lapPadding(Segment &current, Segment &next)
 	}
 }
 
-inline OutputChunk Output::Segment::outputChunk(Eigen::Ref<Eigen::ArrayXXf> ref, bool allZeros)
+template <class FourierKernel>
+inline OutputChunk Output<FourierKernel>::Segment::outputChunk(Eigen::Ref<Eigen::ArrayXXf> ref, bool allZeros)
 {
 	if (allZeros)
 		ref.setZero();
@@ -90,7 +97,8 @@ inline OutputChunk Output::Segment::outputChunk(Eigen::Ref<Eigen::ArrayXXf> ref,
 	return outputChunk;
 }
 
-OutputChunk Output::Segment::resample(float &resampleOffset, Resample::Operation resampleOperationBegin, Resample::Operation resampleOperationEnd, Eigen::Ref<Eigen::ArrayXXf> bufferResampled)
+template <class FourierKernel>
+OutputChunk Output<FourierKernel>::Segment::resample(float &resampleOffset, Resample::Operation resampleOperationBegin, Resample::Operation resampleOperationEnd, Eigen::Ref<Eigen::ArrayXXf> bufferResampled)
 {
 	if (!resampleOperationBegin.function)
 		resampleOperationBegin.ratio = 1.f;

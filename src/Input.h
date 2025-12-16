@@ -10,6 +10,7 @@
 
 namespace Bungee {
 
+template <class FourierKernel>
 struct Input
 {
 	Eigen::ArrayXf window;
@@ -19,7 +20,7 @@ struct Input
 
 	Input() {}
 
-	Input(int log2SynthesisHop, int channelCount, Fourier::Transforms &transforms);
+	Input(int log2SynthesisHop, int channelCount, Fourier::Transforms<FourierKernel> &transforms);
 
 	// returns transformLength
 	int applyAnalysisWindow(const Eigen::Ref<const Eigen::ArrayXXf> &input, int muteFrameCountHead, int muteFrameCountTail);
@@ -27,7 +28,10 @@ struct Input
 
 } // namespace Bungee
 
+template <class FourierKernel>
 struct Bungee_InputCheck
 {
-	Bungee::Input *input;
+	Bungee::Input<FourierKernel> *input;
 };
+
+#include "Input.ipp"

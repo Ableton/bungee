@@ -2,11 +2,10 @@
 // SPDX-License-Identifier: MPL-2.0
 
 #include "Timing.h"
-#include "Grain.h"
 #include "Resample.h"
 #include "log2.h"
 
-#include "bungee/Bungee.h"
+#include "bungee/BungeeTypes.h"
 
 #include <cstdint>
 

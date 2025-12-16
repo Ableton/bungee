@@ -1,7 +1,6 @@
 // Copyright (C) 2020-2025 Parabola Research Limited
 // SPDX-License-Identifier: MPL-2.0
 
-#include "Input.h"
 #include "Grain.h"
 #include "Instrumentation.h"
 #include "log2.h"
@@ -12,12 +11,11 @@ namespace Bungee {
 
 using namespace Internal;
 
-namespace {
-static constexpr float pi = std::numbers::pi_v<float>;
-static constexpr float gain = (3 * pi) / (3 * pi + 8);
-} // namespace
+inline constexpr float pi = std::numbers::pi_v<float>;
+inline constexpr float gain = (3 * pi) / (3 * pi + 8);
 
-Input::Input(int log2SynthesisHop, int channelCount, Fourier::Transforms &transforms) :
+template <class FourierKernel>
+Input<FourierKernel>::Input(int log2SynthesisHop, int channelCount, Fourier::Transforms<FourierKernel> &transforms) :
 	window(Window::fromFrequencyDomainCoefficients(transforms, log2SynthesisHop + 3, gain / (8 << log2SynthesisHop), {1.f, 0.5f})),
 	windowedInput{(8 << log2SynthesisHop), channelCount}
 {
@@ -25,7 +23,8 @@ Input::Input(int log2SynthesisHop, int channelCount, Fourier::Transforms &transf
 	transforms.prepareForward(log2SynthesisHop + 3);
 }
 
-int Input::applyAnalysisWindow(const Eigen::Ref<const Eigen::ArrayXXf> &input, int muteFrameCountHead, int muteFrameCountTail)
+template <class FourierKernel>
+int Input<FourierKernel>::applyAnalysisWindow(const Eigen::Ref<const Eigen::ArrayXXf> &input, int muteFrameCountHead, int muteFrameCountTail)
 {
 	const int half = (int)window.rows() / 2;
 	BUNGEE_ASSERT1(input.rows() % 2 == 0);

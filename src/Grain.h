@@ -12,7 +12,7 @@
 #include "Window.h"
 
 #include "bungee/../src/log2.h"
-#include "bungee/Bungee.h"
+#include "bungee/BungeeTypes.h"
 
 #include <Eigen/Core>
 
@@ -24,6 +24,7 @@
 
 namespace Bungee {
 
+template <class FourierKernel>
 struct Grain
 {
 	struct Analysis
@@ -59,7 +60,7 @@ struct Grain
 	Eigen::ArrayXXf inputCopyStorage;
 	std::optional<Eigen::Block<Eigen::ArrayXXf>> inputCopy;
 
-	Output::Segment segment;
+	Output<FourierKernel>::Segment segment;
 
 	Grain(int log2SynthesisHop, int channelCount, int maxInputFrameCount);
 
@@ -108,3 +109,5 @@ struct Grain
 };
 
 } // namespace Bungee
+
+#include "Grain.ipp"

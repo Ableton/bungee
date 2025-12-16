@@ -6,7 +6,7 @@
 #include "Assert.h"
 #include "Modes.h"
 
-#include "bungee/Bungee.h"
+#include "bungee/BungeeTypes.h"
 
 #include <Eigen/Core>
 

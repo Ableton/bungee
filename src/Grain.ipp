@@ -1,11 +1,10 @@
 // Copyright (C) 2020-2025 Parabola Research Limited
 // SPDX-License-Identifier: MPL-2.0
 
-#include "Grain.h"
 #include "Fourier.h"
 #include "Instrumentation.h"
 
-#include "bungee/Bungee.h"
+#include "bungee/BungeeTypes.h"
 
 #include <limits>
 
@@ -13,11 +12,12 @@ namespace Bungee {
 
 using namespace Internal;
 
-Grain::Grain(int log2SynthesisHop, int channelCount, int maxInputFrameCount) :
+template <class FourierKernel>
+Grain<FourierKernel>::Grain(int log2SynthesisHop, int channelCount, int maxInputFrameCount) :
 	log2TransformLength(log2SynthesisHop + 3),
+	inputResampled(1 << log2TransformLength, channelCount),
 	inputCopyStorage(maxInputFrameCount, channelCount),
-	segment(log2SynthesisHop, channelCount),
-	inputResampled(1 << log2TransformLength, channelCount)
+	segment(log2SynthesisHop, channelCount)
 {
 	request.position = request.speed = std::numeric_limits<float>::quiet_NaN();
 	request.pitch = 1.;
@@ -29,7 +29,8 @@ Grain::Grain(int log2SynthesisHop, int channelCount, int maxInputFrameCount) :
 	partials.reserve(1 << log2TransformLength);
 }
 
-InputChunk Grain::specify(const Request &r, Grain &previous, SampleRates sampleRates, int log2SynthesisHop, double bufferStartPosition)
+template <class FourierKernel>
+InputChunk Grain<FourierKernel>::specify(const Request &r, Grain<FourierKernel> &previous, SampleRates sampleRates, int log2SynthesisHop, double bufferStartPosition)
 {
 	request = r;
 	BUNGEE_ASSERT1(request.pitch > 0.);
@@ -90,7 +91,8 @@ InputChunk Grain::specify(const Request &r, Grain &previous, SampleRates sampleR
 	}
 }
 
-void Grain::overlapCheck(Eigen::Ref<Eigen::ArrayXXf> input, int muteFrameCountHead, int muteFrameCountTail, const Grain &previous)
+template <class FourierKernel>
+void Grain<FourierKernel>::overlapCheck(Eigen::Ref<Eigen::ArrayXXf> input, int muteFrameCountHead, int muteFrameCountTail, const Grain<FourierKernel> &previous)
 {
 	const auto frameCount = inputChunk.end - inputChunk.begin;
 	const auto activeRows = frameCount - muteFrameCountHead - muteFrameCountTail;
@@ -128,7 +130,8 @@ void Grain::overlapCheck(Eigen::Ref<Eigen::ArrayXXf> input, int muteFrameCountHe
 	}
 }
 
-Eigen::Ref<Eigen::ArrayXXf> Grain::resampleInput(Eigen::Ref<Eigen::ArrayXXf> input, int log2WindowLength, int &muteFrameCountHead, int &muteFrameCountTail)
+template <class FourierKernel>
+Eigen::Ref<Eigen::ArrayXXf> Grain<FourierKernel>::resampleInput(Eigen::Ref<Eigen::ArrayXXf> input, int log2WindowLength, int &muteFrameCountHead, int &muteFrameCountTail)
 {
 	if (resampleOperations.input.function)
 	{

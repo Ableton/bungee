@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include "bungee/Bungee.h"
+#include "bungee/BungeeTypes.h"
 
 namespace Bungee {
 

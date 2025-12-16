@@ -10,20 +10,33 @@
 
 namespace Bungee {
 
+template <class FourierKernel>
 struct Grains
 {
-	std::vector<std::unique_ptr<Grain>> vector;
+	std::vector<std::unique_ptr<Grain<FourierKernel>>> vector;
 
 	Grains(size_t n) :
 		vector(n)
 	{
 	}
 
-	void rotate();
+	void rotate()
+	{
+		std::unique_ptr<Grain<FourierKernel>> grain = std::move(vector.front());
+		for (int i = 0; i < vector.size() - 1; ++i)
+			vector[i] = std::move(vector[i + 1]);
+		vector.back() = std::move(grain);
+	}
 
-	bool flushed() const;
+	bool flushed() const
+	{
+		for (auto &grain : vector)
+			if (!std::isnan(grain->request.position))
+				return false;
+		return true;
+	}
 
-	inline Grain &operator[](size_t i)
+	inline Grain<FourierKernel> &operator[](size_t i)
 	{
 		return *vector[3 - i];
 	}
