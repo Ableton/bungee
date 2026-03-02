@@ -7,11 +7,14 @@
 #	include <immintrin.h>
 #endif
 
+#ifdef BUNGEE_PETRIFY
+#	include <unistd.h>
+#endif
+
+#include <array>
 #include <csignal>
 #include <cstdio>
 #include <cstdlib>
-#include <unistd.h>
-#include <array>
 
 namespace Bungee::Assert {
 
