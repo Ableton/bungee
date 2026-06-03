@@ -43,7 +43,7 @@ inline void suppressPartial(std::vector<Partial> &partials, int i, const Eigen::
 		partials[i].end = partials[i - 1].end;
 }
 
-void suppressTransientPartials(std::vector<Partial> &partials, const Eigen::Ref<const Eigen::ArrayX<float>> energy, const Eigen::Ref<const Eigen::ArrayX<float>> previousEnergy)
+void suppressTransientPartials(std::vector<Partial> &partials, const Eigen::Ref<const Eigen::ArrayX<float>> energy, const Eigen::Ref<const Eigen::ArrayX<float>> previousEnergy, const int previousValidBinCount)
 {
 	int strongestPartialIndex = 0;
 	for (int i = 1; i < partials.size(); ++i)
@@ -54,7 +54,9 @@ void suppressTransientPartials(std::vector<Partial> &partials, const Eigen::Ref<
 		if (i != strongestPartialIndex)
 		{
 			constexpr auto k = 1.5f; // fudge: lower constant helps transients, higher helps tones
-			if (energy[partials[i].peak] > k * previousEnergy[partials[i].peak])
+			const auto peak = partials[i].peak;
+			const auto prevEnergy = peak < previousValidBinCount ? previousEnergy[peak] : 0.0f;
+			if (energy[peak] > k * prevEnergy)
 				suppressPartial(partials, i, energy);
 		}
 }
