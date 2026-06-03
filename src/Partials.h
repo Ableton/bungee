@@ -20,6 +20,6 @@ struct Partial
 
 void enumerate(std::vector<Partial> &partials, int n, Eigen::Ref<Eigen::ArrayX<float>> energy);
 
-void suppressTransientPartials(std::vector<Partial> &partials, const Eigen::Ref<const Eigen::ArrayX<float>> energy, const Eigen::Ref<const Eigen::ArrayX<float>> previousEnergy);
+void suppressTransientPartials(std::vector<Partial> &partials, const Eigen::Ref<const Eigen::ArrayX<float>> energy, const Eigen::Ref<const Eigen::ArrayX<float>> previousEnergy, int previousValidBinCount);
 
 } // namespace Bungee::Partials
